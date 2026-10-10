@@ -29,7 +29,8 @@ jobs:
           curl -s -o /dev/null -D - \
             -H "Origin: https://lbouzac.github.io" \
             "https://api.pandascore.co/csgo/matches/running?token=test" \
-            | grep -i -E "^(HTTP|access-control)" || true
+            | grep -i -E "^(HTTP|access-control)" | tr -d '\r' | tr '\n' ' ' > cors.txt || true
+          echo "::notice title=CORS PandaScore::$(cat cors.txt)"
 
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
