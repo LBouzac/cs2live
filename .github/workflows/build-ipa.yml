@@ -1,0 +1,55 @@
+name: Build IPA
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Installer XcodeGen
+        run: brew install xcodegen
+
+      - name: Générer le projet Xcode
+        run: xcodegen generate
+
+      - name: Compiler (sans signature)
+        run: |
+          xcodebuild \
+            -project CS2Live.xcodeproj \
+            -scheme CS2Live \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            build
+
+      - name: Créer le fichier .ipa
+        run: |
+          mkdir -p Payload
+          cp -R build/Build/Products/Release-iphoneos/CS2Live.app Payload/
+          zip -qr CS2Live.ipa Payload
+
+      - name: Garder l'.ipa dans le run
+        uses: actions/upload-artifact@v4
+        with:
+          name: CS2Live-ipa
+          path: CS2Live.ipa
+
+      - name: Publier dans la release "latest"
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete latest --yes --cleanup-tag || true
+          gh release create latest CS2Live.ipa \
+            --title "CS2 Live (dernière version)" \
+            --notes "Build automatique du commit ${GITHUB_SHA::7}. Installe CS2Live.ipa avec Sideloadly." \
+            --latest
