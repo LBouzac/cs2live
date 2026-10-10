@@ -1,0 +1,39 @@
+name: Deploy web app
+
+on:
+  push:
+    branches: [main]
+    paths: ["web/**", ".github/workflows/deploy-web.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Vérifier que PandaScore accepte les appels depuis le navigateur (CORS)
+        run: |
+          curl -s -o /dev/null -D - \
+            -H "Origin: https://lbouzac.github.io" \
+            "https://api.pandascore.co/csgo/matches/running?token=test" \
+            | grep -i -E "^(HTTP|access-control)" || true
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: web
+      - id: deployment
+        uses: actions/deploy-pages@v4

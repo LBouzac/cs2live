@@ -1,0 +1,569 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>CS2 Live</title>
+<meta name="theme-color" content="#14110d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="CS2 Live">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: one-column phone app — sticky header, segmented tabs, match cards, full-screen match sheet */
+:root{
+  --bg:#14110d; --surface:#1f1b16; --surface-2:#2a251e; --line:#3a332a;
+  --fg:#f2ece3; --muted:#a39886; --accent:#f59e2c; --live:#ef4444; --twitch:#a970ff; --ok:#4ade80;
+  --display:"Chakra Petch",ui-sans-serif,system-ui,sans-serif;
+  --body:"IBM Plex Sans",ui-sans-serif,system-ui,-apple-system,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  color-scheme:dark;
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+    --bg:#f6f2ec; --surface:#fffdf9; --surface-2:#efe8dd; --line:#ddd3c4;
+    --fg:#1c1813; --muted:#6f6556; --accent:#c76f0a; --live:#dc2626; --twitch:#7c3aed; --ok:#15803d;
+    color-scheme:light;
+  }
+}
+:root[data-theme="light"]{
+  --bg:#f6f2ec; --surface:#fffdf9; --surface-2:#efe8dd; --line:#ddd3c4;
+  --fg:#1c1813; --muted:#6f6556; --accent:#c76f0a; --live:#dc2626; --twitch:#7c3aed; --ok:#15803d;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--fg);font:15px/1.45 var(--body);-webkit-font-smoothing:antialiased;
+  padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px)}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+[hidden]{display:none!important}
+img{max-width:100%}
+.wrap{max-width:640px;margin:0 auto;padding-inline:16px;padding-block:0 32px}
+
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:12px 10px;
+  display:flex;align-items:center;gap:12px}
+.brand{font:700 22px/1 var(--display);letter-spacing:.02em;flex:1;display:flex;align-items:center;gap:8px}
+.brand .dot{width:9px;height:9px;border-radius:50%;background:var(--live);box-shadow:0 0 0 0 var(--live);animation:pulse 2s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--live) 60%,transparent)}70%{box-shadow:0 0 0 8px transparent}100%{box-shadow:0 0 0 0 transparent}}
+.icon-btn{background:var(--surface);border:1px solid var(--line);border-radius:10px;width:40px;height:40px;display:grid;place-items:center}
+
+.fav{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:var(--surface);
+  border:1px solid var(--line);border-radius:14px;padding:12px}
+.fav .logo{width:44px;height:44px}
+.fav strong{font:700 17px/1.2 var(--display);display:block}
+.fav small{color:var(--muted)}
+.star{color:var(--accent);margin-left:auto;font-size:20px}
+
+.tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;background:var(--surface);border:1px solid var(--line);
+  border-radius:12px;padding:4px;margin-block:14px 10px}
+.tabs button{background:none;border:0;border-radius:9px;padding:8px 4px;font-weight:600;color:var(--muted);font-size:14px}
+.tabs button[aria-selected="true"]{background:var(--surface-2);color:var(--fg)}
+.tabs .count{font-family:var(--mono);font-size:11px;color:var(--live);margin-left:4px}
+
+.toolbar{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-block:4px 8px;color:var(--muted);font-size:12px}
+.chip{border:1px solid var(--line);background:none;border-radius:999px;padding:4px 10px;font-size:12px;color:var(--muted)}
+.chip[aria-pressed="true"]{border-color:var(--twitch);color:var(--twitch)}
+
+h2{font:600 12px/1 var(--body);text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:18px 2px 8px}
+.list{display:grid;gap:8px}
+.card{display:block;width:100%;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px 12px}
+.card.is-fav{border-color:color-mix(in srgb,var(--accent) 55%,var(--line))}
+.meta{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);margin-bottom:6px;min-width:0}
+.meta .league{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0}
+.live-pill{background:var(--live);color:#fff;font:700 10px/1 var(--mono);padding:4px 6px;border-radius:5px;letter-spacing:.05em}
+.bo{font-family:var(--mono);font-size:11px}
+.tw{color:var(--twitch);font-weight:600;font-size:11px}
+.row{display:flex;align-items:center;gap:10px;padding-block:3px}
+.row .name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row.fav-team .name{color:var(--accent);font-weight:600}
+.row.winner .name{font-weight:600}
+.score{font:700 17px/1 var(--mono);font-variant-numeric:tabular-nums;min-width:1.2em;text-align:right}
+.logo{width:22px;height:22px;object-fit:contain;flex:none}
+.logo.ph{border-radius:6px;background:var(--surface-2)}
+.empty{color:var(--muted);background:var(--surface);border:1px dashed var(--line);border-radius:14px;padding:16px;text-align:center;font-size:14px}
+.err{background:color-mix(in srgb,var(--live) 14%,var(--surface));border:1px solid color-mix(in srgb,var(--live) 50%,var(--line));
+  border-radius:12px;padding:12px;font-size:14px;margin-top:12px}
+.updated{color:var(--muted);font-size:11px;text-align:center;margin-top:18px;font-family:var(--mono)}
+
+/* Sheets */
+.sheet{position:fixed;inset:0;z-index:20;background:var(--bg);overflow-y:auto;-webkit-overflow-scrolling:touch;
+  padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px)}
+.sheet-head{position:sticky;top:0;z-index:2;background:var(--bg);display:flex;align-items:center;gap:10px;padding-block:12px}
+.sheet-head h3{flex:1;margin:0;font:700 18px/1.2 var(--display);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.back{background:none;border:0;color:var(--accent);font-weight:600;padding:8px 0}
+
+.player{position:relative;width:100%;max-width:100%;aspect-ratio:16/9;background:#000;border-radius:12px;overflow:hidden}
+.player iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.board{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px;margin-top:12px;text-align:center}
+.board .serie{font-size:12px;color:var(--muted);margin-bottom:10px}
+.board .teams{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px}
+.board .t{display:grid;justify-items:center;gap:6px;min-width:0}
+.board .t img,.board .t .ph{width:56px;height:56px}
+.board .t b{font:700 15px/1.2 var(--display);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.big{font:700 40px/1 var(--mono);font-variant-numeric:tabular-nums}
+.status{font-size:12px;font-weight:600;margin-top:6px}
+.status.live{color:var(--live)}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:12px 14px;margin-top:12px}
+.panel h4{margin:0 0 8px;font:600 12px/1 var(--body);text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.stream{display:flex;align-items:center;gap:8px;padding-block:6px;border-top:1px solid var(--line);flex-wrap:wrap}
+.stream:first-of-type{border-top:0}
+.stream .ch{font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.stream .lang{font:500 11px var(--mono);color:var(--muted)}
+.btn{border:1px solid var(--line);background:var(--surface-2);border-radius:9px;padding:6px 10px;font-size:13px;font-weight:600;text-decoration:none;color:var(--fg)}
+.btn.tw-btn{border-color:var(--twitch);color:var(--twitch);background:none}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#1a1209}
+.map{display:flex;justify-content:space-between;padding-block:6px;border-top:1px solid var(--line);font-size:14px}
+.map:first-of-type{border-top:0}
+.map .s{color:var(--muted)} .map .s.live{color:var(--live);font-weight:600}
+
+.field{display:grid;gap:6px;margin-bottom:14px}
+.field label{font-weight:600;font-size:14px}
+.field small{color:var(--muted)}
+input[type=text],input[type=search],input[type=url],input[type=password]{width:100%;background:var(--surface);color:var(--fg);
+  border:1px solid var(--line);border-radius:10px;padding:11px 12px;font:16px var(--body)}
+.team-res{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.team-res img,.team-res .ph{width:32px;height:32px}
+.sugg{display:flex;flex-wrap:wrap;gap:6px;margin-block:4px 14px}
+.note{font-size:13px;color:var(--muted);background:var(--surface);border-radius:12px;padding:12px;border:1px solid var(--line)}
+@media (prefers-reduced-motion: reduce){.brand .dot{animation:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand"><span class="dot" aria-hidden="true"></span>CS2 Live</div>
+    <button class="icon-btn" id="btnSettings" aria-label="Réglages">⚙︎</button>
+  </header>
+
+  <button class="fav" id="btnFav">
+    <span id="favLogo"></span>
+    <span><strong id="favName">Choisis ton équipe</strong><small id="favSub">Pour suivre ses matchs et recevoir les scores</small></span>
+    <span class="star" aria-hidden="true">★</span>
+  </button>
+
+  <div class="tabs" role="tablist">
+    <button role="tab" id="tab-live" aria-selected="true">En direct<span class="count" id="liveCount"></span></button>
+    <button role="tab" id="tab-up" aria-selected="false">À venir</button>
+    <button role="tab" id="tab-past" aria-selected="false">Résultats</button>
+  </div>
+
+  <div id="error" class="err" hidden></div>
+  <main id="content"><div class="empty">Chargement…</div></main>
+  <div class="updated" id="updated"></div>
+</div>
+
+<!-- Fiche match -->
+<section class="sheet" id="matchSheet" hidden aria-label="Match">
+  <div class="wrap">
+    <div class="sheet-head"><button class="back" id="closeMatch">‹ Retour</button><h3 id="mTitle"></h3></div>
+    <div id="mBody"></div>
+  </div>
+</section>
+
+<!-- Choix équipe -->
+<section class="sheet" id="teamSheet" hidden aria-label="Équipe favorite">
+  <div class="wrap">
+    <div class="sheet-head"><button class="back" id="closeTeam">‹ Retour</button><h3>Équipe favorite</h3></div>
+    <div class="field"><input type="search" id="teamQuery" placeholder="Rechercher une équipe (Vitality, NAVI…)" autocomplete="off"></div>
+    <div class="sugg" id="sugg"></div>
+    <div class="list" id="teamResults"></div>
+  </div>
+</section>
+
+<!-- Réglages -->
+<section class="sheet" id="setSheet" hidden aria-label="Réglages">
+  <div class="wrap">
+    <div class="sheet-head"><button class="back" id="closeSet">‹ Retour</button><h3>Réglages</h3></div>
+    <div class="field">
+      <label for="token">Token PandaScore</label>
+      <input type="password" id="token" placeholder="Colle ton token ici" autocomplete="off">
+      <small>Gratuit sur app.pandascore.co → ton tableau de bord. Gardé uniquement sur ce téléphone.</small>
+    </div>
+    <div class="field">
+      <label for="proxy">Adresse du relais (facultatif)</label>
+      <input type="url" id="proxy" placeholder="https://cs2live.ton-nom.workers.dev" autocomplete="off">
+      <small>À remplir seulement si l'app affiche « connexion bloquée ». Voir README.</small>
+    </div>
+    <div class="field">
+      <label>Notifications de ton équipe</label>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <button class="btn primary" id="btnNotif">Activer les notifications</button>
+        <span id="notifState" style="color:var(--muted);font-size:13px"></span>
+      </div>
+      <small>Début de match, chaque map gagnée, résultat final. Sur iPhone : ajoute d'abord l'app à l'écran d'accueil (Partager → Sur l'écran d'accueil).</small>
+    </div>
+    <button class="btn primary" id="saveSet" style="width:100%;padding:12px">Enregistrer</button>
+    <p class="note" style="margin-top:16px">Les scores se mettent à jour toutes les 20 secondes tant que l'app est ouverte. Le stream Twitch a 2 à 4 minutes de retard : le score affiché ici peut donc être en avance sur l'image.</p>
+  </div>
+</section>
+
+<script>
+(() => {
+"use strict";
+const REFRESH_MS = 20000;
+const API = "https://api.pandascore.co";
+const SUGGESTIONS = ["Vitality","Natus Vincere","FaZe","G2","Spirit","MOUZ","Falcons","The MongolZ","Team Liquid","FURIA","Aurora","3DMAX"];
+
+/* ---------- stockage local ---------- */
+const store = {
+  get(k, d){ try{ const v = localStorage.getItem("cs2live:"+k); return v === null ? d : JSON.parse(v); }catch{ return d; } },
+  set(k, v){ try{ localStorage.setItem("cs2live:"+k, JSON.stringify(v)); }catch{} }
+};
+const S = {
+  token: store.get("token",""),
+  proxy: store.get("proxy",""),
+  fav: store.get("fav", null),            // {id,name,image}
+  onlyTwitch: store.get("onlyTwitch", true),
+  tab: "live",
+  live: [], up: [], past: [],
+  openMatchId: null,
+  favState: store.get("favState", {})     // matchId -> "a-b" dernier score notifié
+};
+
+/* ---------- utilitaires ---------- */
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const logo = (url, cls="logo") => url
+  ? `<img class="${cls}" src="${esc(url)}" alt="" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'${cls} ph'}))">`
+  : `<span class="${cls} ph"></span>`;
+const teamA = m => m.opponents?.[0]?.opponent || null;
+const teamB = m => m.opponents?.[1]?.opponent || null;
+const scoreOf = (m, t) => t ? (m.results?.find(r => r.team_id === t.id)?.score ?? 0) : 0;
+const involves = (m, id) => !!id && (m.opponents || []).some(o => o.opponent?.id === id);
+const short = t => t ? (t.acronym || t.name) : "TBD";
+function twitchStreams(m){
+  return (m.streams_list || []).map(s => {
+    try{
+      const u = new URL(s.raw_url);
+      if(!u.hostname.endsWith("twitch.tv")) return null;
+      const ch = u.pathname.split("/").filter(Boolean)[0];
+      return ch ? {...s, channel: ch.toLowerCase()} : null;
+    }catch{ return null; }
+  }).filter(Boolean).sort((a,b) => (b.main?1:0)-(a.main?1:0) || (b.official?1:0)-(a.official?1:0));
+}
+const fmtDate = iso => iso ? new Date(iso).toLocaleString("fr-FR",{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}) : "";
+const fmtTime = d => d.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit",second:"2-digit"});
+
+/* ---------- API ---------- */
+async function api(path, params = {}){
+  const base = S.proxy ? S.proxy.replace(/\/+$/,"") : API;
+  if(!S.proxy && !S.token) throw new Error("NO_TOKEN");
+  const u = new URL(base + path);
+  for(const [k,v] of Object.entries(params)) u.searchParams.set(k, v);
+  if(!S.proxy) u.searchParams.set("token", S.token);
+  let r;
+  try{ r = await fetch(u, {cache:"no-store"}); }
+  catch{ throw new Error("BLOCKED"); }
+  if(!r.ok) throw new Error("HTTP_" + r.status);
+  return r.json();
+}
+function errorText(e){
+  const m = e.message || "";
+  if(m === "NO_TOKEN") return "Ajoute ton token PandaScore dans les réglages (⚙︎) pour charger les matchs.";
+  if(m === "BLOCKED") return "Connexion bloquée vers PandaScore. Vérifie ta connexion internet ; si ça persiste, installe le petit relais gratuit décrit dans le README et renseigne son adresse dans les réglages.";
+  if(m === "HTTP_401" || m === "HTTP_403") return "Token PandaScore refusé. Vérifie-le dans les réglages.";
+  if(m === "HTTP_429") return "Trop de requêtes pour ton plan PandaScore. Nouvelle tentative au prochain rafraîchissement.";
+  return "Erreur de chargement (" + esc(m) + ").";
+}
+
+/* ---------- rendu liste ---------- */
+function card(m){
+  const a = teamA(m), b = teamB(m), favId = S.fav?.id;
+  const live = m.status === "running", done = m.status === "finished";
+  const sa = scoreOf(m,a), sb = scoreOf(m,b);
+  const tw = twitchStreams(m).length > 0;
+  const row = (t, s, other) => `<div class="row ${t && t.id===favId ? "fav-team":""} ${done && s>other ? "winner":""}">
+      ${logo(t?.image_url)}<span class="name">${esc(t?.name || "À déterminer")}</span>
+      ${m.status !== "not_started" ? `<span class="score">${s}</span>` : ""}</div>`;
+  return `<button class="card ${involves(m,favId) ? "is-fav":""}" data-id="${m.id}">
+    <div class="meta">
+      ${live ? `<span class="live-pill">LIVE</span>` : `<span>${esc(fmtDate(m.scheduled_at || m.begin_at))}</span>`}
+      <span class="league">${esc(m.league?.name || "")}${m.serie?.full_name ? " · " + esc(m.serie.full_name) : ""}</span>
+      ${tw ? `<span class="tw">▶ Twitch</span>` : ""}
+      ${m.number_of_games ? `<span class="bo">BO${m.number_of_games}</span>` : ""}
+    </div>
+    ${row(a, sa, sb)}${row(b, sb, sa)}
+  </button>`;
+}
+const section = (title, items, emptyMsg) =>
+  `<h2>${esc(title)}</h2>` + (items.length ? `<div class="list">${items.map(card).join("")}</div>` : `<div class="empty">${esc(emptyMsg)}</div>`);
+
+function render(){
+  const favId = S.fav?.id;
+  $("liveCount").textContent = S.live.length ? S.live.length : "";
+  ["live","up","past"].forEach(t => $("tab-"+t).setAttribute("aria-selected", String(S.tab === t)));
+  let html = "";
+  if(S.tab === "live"){
+    const mine = S.live.filter(m => involves(m,favId));
+    const others = S.live.filter(m => !involves(m,favId) && (!S.onlyTwitch || twitchStreams(m).length));
+    html += `<div class="toolbar"><span>${S.live.length} match${S.live.length>1?"s":""} en cours</span>
+      <button class="chip" id="twFilter" aria-pressed="${S.onlyTwitch}">▶ Twitch uniquement</button></div>`;
+    if(S.fav) html += section(S.fav.name, mine, `${S.fav.name} ne joue pas en ce moment.`);
+    html += section(S.fav ? "Autres matchs" : "Tous les matchs", others, "Aucun match en direct pour l'instant.");
+  } else if(S.tab === "up"){
+    const list = S.up.slice(0, 30);
+    html += section(S.fav ? `Prochains matchs de ${S.fav.name}` : "Prochains matchs", list, "Rien de programmé pour le moment.");
+  } else {
+    html += S.fav ? section(`Derniers résultats de ${S.fav.name}`, S.past, "Pas de résultat récent.")
+                  : `<div class="empty" style="margin-top:12px">Choisis une équipe favorite pour voir ses résultats.</div>`;
+  }
+  $("content").innerHTML = html;
+  const f = $("twFilter");
+  if(f) f.onclick = () => { S.onlyTwitch = !S.onlyTwitch; store.set("onlyTwitch", S.onlyTwitch); render(); };
+}
+
+function renderFav(){
+  if(S.fav){
+    $("favLogo").innerHTML = logo(S.fav.image, "logo");
+    $("favLogo").firstChild && ($("favLogo").firstChild.style.cssText = "width:44px;height:44px");
+    $("favName").textContent = S.fav.name;
+    $("favSub").textContent = "Équipe favorite · touche pour changer";
+  } else {
+    $("favLogo").innerHTML = `<span class="logo ph" style="width:44px;height:44px"></span>`;
+  }
+}
+
+/* ---------- rafraîchissement ---------- */
+let timer = null, loading = false;
+async function refresh(){
+  if(loading) return; loading = true;
+  try{
+    const favId = S.fav?.id;
+    const upParams = {per_page:"50", sort:"scheduled_at"};
+    if(favId) upParams["filter[opponent_id]"] = String(favId);
+    const [live, up] = await Promise.all([
+      api("/csgo/matches/running", {per_page:"50"}),
+      api("/csgo/matches/upcoming", upParams)
+    ]);
+    const prevLive = S.live;
+    S.live = live.sort((a,b) => (twitchStreams(b).length?1:0) - (twitchStreams(a).length?1:0));
+    S.up = up;
+    if(favId && (S.tab === "past" || !S.past.length)){
+      S.past = await api("/csgo/matches/past", {per_page:"10", sort:"-begin_at", "filter[opponent_id]": String(favId)});
+    }
+    $("error").hidden = true;
+    $("updated").textContent = "Mis à jour à " + fmtTime(new Date()) + " · toutes les 20 s";
+    await checkFavNotifications(prevLive);
+  }catch(e){
+    $("error").innerHTML = errorText(e);
+    $("error").hidden = false;
+    if(!S.live.length) $("content").innerHTML = "";
+  }finally{
+    loading = false;
+    render();
+    if(S.openMatchId) refreshMatch();
+  }
+}
+function startPolling(){ stopPolling(); refresh(); timer = setInterval(refresh, REFRESH_MS); }
+function stopPolling(){ if(timer) clearInterval(timer); timer = null; }
+document.addEventListener("visibilitychange", () => document.hidden ? stopPolling() : startPolling());
+
+/* ---------- notifications ---------- */
+async function notify(title, body, matchId){
+  if(!("Notification" in window) || Notification.permission !== "granted") return;
+  const opts = {body, icon:"icon-192.png", badge:"icon-192.png", tag:"m"+matchId+"-"+Date.now(), data:{matchId}};
+  try{
+    const reg = await navigator.serviceWorker?.getRegistration();
+    if(reg) return reg.showNotification(title, opts);
+  }catch{}
+  try{ new Notification(title, opts); }catch{}
+}
+async function checkFavNotifications(prevLive){
+  const favId = S.fav?.id; if(!favId) return;
+  const mineNow = S.live.filter(m => involves(m,favId));
+  for(const m of mineNow){
+    const a = teamA(m), b = teamB(m);
+    const key = scoreOf(m,a) + "-" + scoreOf(m,b);
+    const prev = S.favState[m.id];
+    if(prev === undefined){
+      notify(`🔴 ${S.fav.name} est en live`, `${short(a)} vs ${short(b)} · ${m.league?.name || ""}${twitchStreams(m).length ? " · sur Twitch" : ""}`, m.id);
+    }else if(prev !== key){
+      notify(`Map terminée : ${short(a)} ${key.replace("-"," – ")} ${short(b)}`, m.league?.name || "", m.id);
+    }
+    S.favState[m.id] = key;
+  }
+  // Matchs de l'équipe qui ne sont plus en cours : récupérer le résultat final
+  const ended = Object.keys(S.favState).filter(id => !mineNow.some(m => String(m.id) === id));
+  for(const id of ended){
+    try{
+      const m = await api("/matches/" + id);
+      if(m.status === "finished"){
+        const a = teamA(m), b = teamB(m), sa = scoreOf(m,a), sb = scoreOf(m,b);
+        const won = m.winner_id === favId;
+        notify(`${won ? "✅ Victoire" : "❌ Défaite"} de ${S.fav.name}`, `${short(a)} ${sa} – ${sb} ${short(b)}`, m.id);
+        delete S.favState[id];
+      }else if(m.status !== "running"){ delete S.favState[id]; }
+    }catch{}
+  }
+  store.set("favState", S.favState);
+}
+function updateNotifState(){
+  const el = $("notifState");
+  if(!("Notification" in window)){
+    el.textContent = /iPhone|iPad/.test(navigator.userAgent) ? "Ajoute d'abord l'app à l'écran d'accueil." : "Non pris en charge par ce navigateur.";
+    $("btnNotif").disabled = true; return;
+  }
+  const p = Notification.permission;
+  el.textContent = p === "granted" ? "Activées ✓" : p === "denied" ? "Refusées dans les réglages du téléphone." : "";
+  $("btnNotif").hidden = p === "granted";
+}
+$("btnNotif").onclick = async () => {
+  try{ await Notification.requestPermission(); }catch{}
+  updateNotifState();
+  if(Notification.permission === "granted") notify("Notifications activées", S.fav ? `Tu seras prévenu des matchs de ${S.fav.name}.` : "Choisis une équipe favorite.", 0);
+};
+
+/* ---------- fiche match ---------- */
+let currentMatch = null, currentChannel = null;
+function openMatch(id){
+  S.openMatchId = id;
+  const m = [...S.live, ...S.up, ...S.past].find(x => x.id === id);
+  currentMatch = m || null; currentChannel = null;
+  $("matchSheet").hidden = false; document.body.style.overflow = "hidden";
+  $("mBody").innerHTML = `<div class="empty">Chargement…</div>`;
+  if(m) renderMatch();
+  refreshMatch();
+}
+function closeMatch(){
+  S.openMatchId = null; currentMatch = null; currentChannel = null;
+  $("matchSheet").hidden = true; $("mBody").innerHTML = ""; document.body.style.overflow = "";
+}
+async function refreshMatch(){
+  const id = S.openMatchId; if(!id) return;
+  try{
+    const m = await api("/matches/" + id);
+    if(S.openMatchId !== id) return;
+    currentMatch = m; renderMatch();
+  }catch(e){ if(!currentMatch) $("mBody").innerHTML = `<div class="err">${errorText(e)}</div>`; }
+}
+function renderMatch(){
+  const m = currentMatch; if(!m) return;
+  const a = teamA(m), b = teamB(m), live = m.status === "running";
+  const streams = twitchStreams(m);
+  if(!currentChannel && streams.length) currentChannel = streams[0].channel;
+  $("mTitle").textContent = m.league?.name || "Match";
+
+  // Le lecteur n'est reconstruit que si la chaîne change (évite de couper le stream à chaque mise à jour)
+  let player = $("mBody").querySelector(".player");
+  const wantPlayer = live && currentChannel;
+  const parent = location.hostname || "localhost";
+  const src = wantPlayer ? `https://player.twitch.tv/?channel=${encodeURIComponent(currentChannel)}&parent=${encodeURIComponent(parent)}&muted=true&autoplay=true` : "";
+  const keepPlayer = player && player.dataset.ch === currentChannel && wantPlayer;
+  if(keepPlayer) player.remove();
+
+  const statusHtml = live
+    ? `<div class="status live">● En direct${m.games?.find(g=>g.status==="running") ? " · Map " + m.games.find(g=>g.status==="running").position : ""}</div>`
+    : m.status === "not_started" ? `<div class="status">${esc(fmtDate(m.scheduled_at || m.begin_at))}</div>`
+    : `<div class="status">Terminé</div>`;
+
+  const games = (m.games || []).slice().sort((x,y) => x.position - y.position);
+  const mapsHtml = games.length ? `<div class="panel"><h4>Maps</h4>${games.map(g => {
+      const w = [a,b].find(t => t && t.id === g.winner?.id);
+      const s = g.status === "running" ? `<span class="s live">En cours</span>`
+              : g.status === "finished" ? `<span class="s">Gagnée par ${esc(short(w))}</span>`
+              : `<span class="s">À venir</span>`;
+      return `<div class="map"><span>Map ${g.position}</span>${s}</div>`;
+    }).join("")}</div>` : "";
+
+  const streamsHtml = streams.length ? `<div class="panel"><h4>Streams Twitch</h4>${streams.map(s => `
+      <div class="stream">
+        <span class="ch">${esc(s.channel)}${s.channel === currentChannel && live ? " ◀" : ""}</span>
+        ${s.language ? `<span class="lang">${esc(s.language.toUpperCase())}</span>` : ""}
+        ${s.official ? `<span class="lang">officiel</span>` : ""}
+        ${live && s.channel !== currentChannel ? `<button class="btn" data-ch="${esc(s.channel)}">Regarder</button>` : ""}
+        <a class="btn tw-btn" href="https://www.twitch.tv/${encodeURIComponent(s.channel)}" target="_blank" rel="noopener">Ouvrir ↗</a>
+      </div>`).join("")}</div>`
+    : `<div class="panel"><h4>Streams</h4><div style="color:var(--muted);font-size:14px">Aucun stream Twitch annoncé pour ce match.</div></div>`;
+
+  $("mBody").innerHTML = `
+    <div id="playerSlot"></div>
+    <div class="board">
+      <div class="serie">${esc(m.serie?.full_name || m.tournament?.name || "")}${m.number_of_games ? " · BO" + m.number_of_games : ""}</div>
+      <div class="teams">
+        <div class="t">${logo(a?.image_url,"logo")}<b>${esc(short(a))}</b></div>
+        <div><div class="big">${scoreOf(m,a)} : ${scoreOf(m,b)}</div>${statusHtml}</div>
+        <div class="t">${logo(b?.image_url,"logo")}<b>${esc(short(b))}</b></div>
+      </div>
+    </div>
+    ${streamsHtml}${mapsHtml}`;
+
+  const slot = $("playerSlot");
+  if(keepPlayer) slot.replaceWith(player);
+  else if(wantPlayer) slot.outerHTML = `<div class="player" data-ch="${esc(currentChannel)}"><iframe src="${src}" allowfullscreen allow="autoplay; fullscreen; picture-in-picture" title="Stream Twitch ${esc(currentChannel)}"></iframe></div>`;
+  else slot.remove();
+
+  $("mBody").querySelectorAll("button[data-ch]").forEach(btn => btn.onclick = () => { currentChannel = btn.dataset.ch; renderMatch(); });
+}
+
+/* ---------- choix d'équipe ---------- */
+let searchT = null;
+function openTeams(){
+  $("teamSheet").hidden = false; document.body.style.overflow = "hidden";
+  $("sugg").innerHTML = SUGGESTIONS.map(n => `<button class="chip" data-q="${esc(n)}">${esc(n)}</button>`).join("");
+  $("sugg").querySelectorAll("button").forEach(b => b.onclick = () => { $("teamQuery").value = b.dataset.q; searchTeams(); });
+  $("teamResults").innerHTML = "";
+}
+function closeTeams(){ $("teamSheet").hidden = true; document.body.style.overflow = ""; }
+async function searchTeams(){
+  const q = $("teamQuery").value.trim();
+  if(q.length < 2){ $("teamResults").innerHTML = ""; return; }
+  $("teamResults").innerHTML = `<div class="empty">Recherche…</div>`;
+  try{
+    const teams = await api("/csgo/teams", {"search[name]": q, per_page:"30"});
+    $("teamResults").innerHTML = teams.length ? teams.map(t => `
+      <button class="team-res" data-id="${t.id}">
+        ${logo(t.image_url,"logo")}
+        <span style="flex:1;min-width:0"><b>${esc(t.name)}</b>${t.acronym ? `<br><small style="color:var(--muted)">${esc(t.acronym)}${t.location ? " · " + esc(t.location) : ""}</small>` : ""}</span>
+        ${S.fav?.id === t.id ? `<span class="star">★</span>` : ""}
+      </button>`).join("") : `<div class="empty">Aucune équipe trouvée pour « ${esc(q)} ».</div>`;
+    $("teamResults").querySelectorAll(".team-res").forEach(btn => btn.onclick = () => {
+      const t = teams.find(x => x.id === Number(btn.dataset.id));
+      S.fav = {id:t.id, name:t.name, image:t.image_url || ""};
+      store.set("fav", S.fav); S.past = []; S.favState = {}; store.set("favState", {});
+      renderFav(); closeTeams(); startPolling();
+    });
+  }catch(e){ $("teamResults").innerHTML = `<div class="err">${errorText(e)}</div>`; }
+}
+$("teamQuery").addEventListener("input", () => { clearTimeout(searchT); searchT = setTimeout(searchTeams, 350); });
+
+/* ---------- réglages ---------- */
+function openSettings(){
+  $("token").value = S.token; $("proxy").value = S.proxy; updateNotifState();
+  $("setSheet").hidden = false; document.body.style.overflow = "hidden";
+}
+function closeSettings(){ $("setSheet").hidden = true; document.body.style.overflow = ""; }
+$("saveSet").onclick = () => {
+  S.token = $("token").value.trim(); S.proxy = $("proxy").value.trim();
+  store.set("token", S.token); store.set("proxy", S.proxy);
+  closeSettings(); startPolling();
+};
+
+/* ---------- événements ---------- */
+$("btnSettings").onclick = openSettings;
+$("closeSet").onclick = closeSettings;
+$("btnFav").onclick = openTeams;
+$("closeTeam").onclick = closeTeams;
+$("closeMatch").onclick = closeMatch;
+["live","up","past"].forEach(t => $("tab-"+t).onclick = () => { S.tab = t; render(); if(t === "past" && S.fav && !S.past.length) refresh(); });
+$("content").addEventListener("click", e => { const c = e.target.closest(".card"); if(c) openMatch(Number(c.dataset.id)); });
+
+/* ---------- démarrage ---------- */
+if("serviceWorker" in navigator){
+  navigator.serviceWorker.register("sw.js").catch(() => {});
+  navigator.serviceWorker.addEventListener("message", e => { if(e.data?.matchId) openMatch(e.data.matchId); });
+}
+renderFav(); render();
+if(!S.token && !S.proxy) openSettings();
+else if(!S.fav) openTeams();
+startPolling();
+})();
+</script>
+</body>
+</html>
